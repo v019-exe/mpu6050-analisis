@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Importación de KaTeX para renderizado de fórmulas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --accent-primary: #6366f1;
+            --accent-rms: #10b981;
+            --accent-peak: #f43f5e;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: #334155;
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            padding: 2rem;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            color: var(--text-main);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-primary);
+            background: #232f45;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+            min-height: 1.5em;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+        }
+
+        .range-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent-primary);
+            cursor: pointer;
+        }
+
+        .value-badge {
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        .canvas-container {
+            position: relative;
+            background: #020617;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            height: 280px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .formula-bar {
+            margin-top: 1.5rem;
+            padding: 1.2rem;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            color: var(--text-main);
+            text-align: center;
+            border: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+
+        .formula-item {
+            display: inline-block;
+            margin: 0 15px;
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .container { padding: 1rem; }
+            .formula-item { display: block; margin: 10px 0; }
+        }
+    </style>
+    <title>Análisis de Vibración Interactiva</title>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>Análisis de Señal: MPU6050</h2>
+        <div style="font-size: 0.7rem; color: var(--text-dim);">SAMP_FREQ: 1kHz</div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">\( a_{\text{rms}} \)</div>
+            <div id="val-rms" class="stat-value" style="color: var(--accent-rms);">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">\( a_{\text{peak}} \)</div>
+            <div id="val-peak" class="stat-value" style="color: var(--accent-peak);">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Crest Factor</div>
+            <div id="val-crest" class="stat-value">—</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Amplitud (g)</label>
+            <div class="range-wrapper">
+                <input type="range" id="sl-amp" min="0.1" max="3" step="0.1" value="1">
+                <span id="lb-amp" class="value-badge">1.0g</span>
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Frecuencia (Hz)</label>
+            <div class="range-wrapper">
+                <input type="range" id="sl-freq" min="1" max="200" step="1" value="25">
+                <span id="lb-freq" class="value-badge">25 Hz</span>
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Ruido (\(\sigma\))</label>
+            <div class="range-wrapper">
+                <input type="range" id="sl-noise" min="0" max="0.5" step="0.01" value="0.1">
+                <span id="lb-noise" class="value-badge">0.10g</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="waveCanvas"></canvas>
+    </div>
+
+    <div class="formula-bar">
+        <div class="formula-item">\( a_{\text{rms}} = \sqrt{\frac{1}{N} \sum_{i=1}^{N} a_i^2} \)</div>
+        <div class="formula-item">\( a_{\text{peak}} = \max|a_i| \)</div>
+        <div class="formula-item">\( C.F. = \frac{a_{\text{peak}}}{a_{\text{rms}}} \)</div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('waveCanvas');
+    const ctx = canvas.getContext('2d');
+    let amp = 1, freq = 25, noise = 0.1;
+    const N = 512;
+    const fs = 1000;
+
+    const colors = {
+        line: '#6366f1',
+        rms: '#10b981',
+        peak: '#f43f5e',
+        grid: 'rgba(255, 255, 255, 0.05)',
+        zero: 'rgba(255, 255, 255, 0.2)',
+        text: '#94a3b8'
+    };
+
+    function generateSignal() {
+        const dt = 1 / fs;
+        const data = [];
+        for (let i = 0; i < N; i++) {
+            const t = i * dt;
+            const v = amp * Math.sin(2 * Math.PI * freq * t) + (Math.random() - 0.5) * 2 * noise;
+            data.push(v);
+        }
+        return data;
+    }
+
+    function computeStats(data) {
+        const rms = Math.sqrt(data.reduce((s, v) => s + v * v, 0) / data.length);
+        const peak = Math.max(...data.map(Math.abs));
+        const crest = peak / rms;
+        return { rms, peak, crest };
+    }
+
+    function draw() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0) {
+            requestAnimationFrame(draw);
+            return;
+        }
+        
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+
+        const W = rect.width;
+        const H = rect.height;
+        ctx.clearRect(0, 0, W, H);
+
+        const maxVal = 4; 
+        const pad = { l: 0, r: 0, t: 20, b: 20 };
+        const ph = H - pad.t - pad.b;
+        const mid = pad.t + ph / 2;
+
+        // Grid
+        ctx.strokeStyle = colors.grid;
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+            const y = pad.t + ph * i / 4;
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+
+        // Zero line
+        ctx.strokeStyle = colors.zero;
+        ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke();
+
+        const currentData = generateSignal();
+        const { rms, peak, crest } = computeStats(currentData);
+
+        // Signal Path
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = colors.line;
+        ctx.strokeStyle = colors.line;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < N; i++) {
+            const x = (i / N) * W;
+            const y = mid - (currentData[i] / maxVal) * ph;
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // RMS visual indicators
+        const rmsYp = mid - (rms / maxVal) * ph;
+        const rmsYn = mid + (rms / maxVal) * ph;
+        ctx.strokeStyle = colors.rms;
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, rmsYp); ctx.lineTo(W, rmsYp); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, rmsYn); ctx.lineTo(W, rmsYn); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Peak visual indicator
+        const peakY = mid - (peak / maxVal) * ph;
+        ctx.strokeStyle = colors.peak;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 4]);
+        ctx.beginPath(); ctx.moveTo(0, peakY); ctx.lineTo(W, peakY); ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Update DOM
+        document.getElementById('val-rms').textContent = rms.toFixed(3) + ' g';
+        document.getElementById('val-peak').textContent = peak.toFixed(3) + ' g';
+        document.getElementById('val-crest').textContent = crest.toFixed(2);
+        
+        requestAnimationFrame(draw);
+    }
+
+    function updateParams() {
+        amp = parseFloat(document.getElementById('sl-amp').value);
+        freq = parseInt(document.getElementById('sl-freq').value);
+        noise = parseFloat(document.getElementById('sl-noise').value);
+        
+        document.getElementById('lb-amp').textContent = amp.toFixed(1) + 'g';
+        document.getElementById('lb-freq').textContent = freq + ' Hz';
+        document.getElementById('lb-noise').textContent = noise.toFixed(2) + 'g';
+    }
+
+    // Inicialización segura de fórmulas matemáticas
+    function initMath() {
+        if (typeof renderMathInElement === 'function') {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '\\(', right: '\\)', display: false}
+                ],
+                throwOnError : false
+            });
+        }
+    }
+
+    window.onload = () => {
+        initMath();
+        updateParams();
+        draw();
+    };
+
+    document.querySelectorAll('input').forEach(el => el.oninput = updateParams);
+    window.addEventListener('resize', updateParams);
+</script>
+
+</body>
+</html>
